@@ -2,7 +2,7 @@
 # Copyright 2010 Joshua Roesslein
 # See LICENSE for details.
 
-from datetime import datetime
+from datetime import datetime, tzinfo, timedelta
 import time
 import htmlentitydefs
 import re
@@ -10,12 +10,19 @@ import locale
 from urllib import quote
 
 
+class GMT(tzinfo):
+    def utcoffset(self, dt):
+        return timedelta(0)
+gmt = GMT()
+
+
 def parse_datetime(string):
     # Set locale for date parsing
     locale.setlocale(locale.LC_TIME, 'C')
 
     # We must parse datetime this way to work in python 2.4
-    date = datetime(*(time.strptime(string, '%a %b %d %H:%M:%S +0000 %Y')[0:6]))
+    date = datetime(*(time.strptime(string, '%a %b %d %H:%M:%S +0000 %Y')[0:6]),
+                    tzinfo=gmt)
 
     # Reset locale back to the default setting
     locale.setlocale(locale.LC_TIME, '')
