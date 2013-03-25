@@ -132,7 +132,6 @@ class Stream(object):
                 break
         else:
             import threading
-            print 'exiting self.running looop %s' % threading.current_thread()
             self.listener.on_connection_close()
 
         # cleanup
