@@ -13,6 +13,11 @@ from urllib import quote
 class GMT(tzinfo):
     def utcoffset(self, dt):
         return timedelta(0)
+
+    def dst(self, dt):
+        # this method is needed if you want to use strftime on datetie objects
+        return timedelta(0)
+
 gmt = GMT()
 
 
