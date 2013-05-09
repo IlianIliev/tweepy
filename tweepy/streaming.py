@@ -61,6 +61,11 @@ class StreamListener(object):
         """Called when stream connection times out"""
         return
 
+    def on_connection_close(self):
+        """Called when the connection is about to be closed. You cam perform
+        some specific operations related to the closing of the thread"""
+        return
+
 
 class Stream(object):
 
@@ -125,6 +130,9 @@ class Stream(object):
             except Exception, exception:
                 # any other exception is fatal, so kill loop
                 break
+        else:
+            import threading
+            self.listener.on_connection_close()
 
         # cleanup
         self.running = False
