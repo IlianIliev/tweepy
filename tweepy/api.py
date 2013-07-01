@@ -17,8 +17,8 @@ class API(object):
     def __init__(self, auth_handler=None,
             host='api.twitter.com', search_host='search.twitter.com',
              cache=None, secure=True, api_root='/1.1', search_root='',
-            retry_count=0, retry_delay=0, retry_errors=None,
-            parser=None):
+            retry_count=0, retry_delay=0, retry_errors=None, timeout=60,
+            parser=None, compression=False):
         self.auth = auth_handler
         self.host = host
         self.search_host = search_host
@@ -26,16 +26,18 @@ class API(object):
         self.search_root = search_root
         self.cache = cache
         self.secure = secure
+        self.compression = compression
         self.retry_count = retry_count
         self.retry_delay = retry_delay
         self.retry_errors = retry_errors
+        self.timeout = timeout
         self.parser = parser or ModelParser()
 
     """ statuses/home_timeline """
     home_timeline = bind_api(
         path = '/statuses/home_timeline.json',
         payload_type = 'status', payload_list = True,
-        allowed_param = ['since_id', 'max_id', 'count', 'page'],
+        allowed_param = ['since_id', 'max_id', 'count'],
         require_auth = True
     )
 
@@ -44,7 +46,7 @@ class API(object):
         path = '/statuses/user_timeline.json',
         payload_type = 'status', payload_list = True,
         allowed_param = ['id', 'user_id', 'screen_name', 'since_id',
-                          'max_id', 'count', 'page', 'include_rts']
+                          'max_id', 'count', 'include_rts']
     )
 
     """ statuses/mentions """
@@ -83,7 +85,7 @@ class API(object):
     retweets_of_me = bind_api(
         path = '/statuses/retweets_of_me.json',
         payload_type = 'status', payload_list = True,
-        allowed_param = ['since_id', 'max_id', 'count', 'page'],
+        allowed_param = ['since_id', 'max_id', 'count'],
         require_auth = True
     )
 
@@ -136,6 +138,13 @@ class API(object):
         allowed_param = ['id', 'user_id', 'screen_name']
     )
 
+    ''' statuses/oembed '''
+    get_oembed = bind_api(
+        path = '/statuses/oembed.json',
+        payload_type = 'json',
+        allowed_param = ['id', 'url', 'maxwidth', 'hide_media', 'omit_script', 'align', 'related', 'lang']
+    )
+
     """ Perform bulk look up of users from user ID or screenname """
     def lookup_users(self, user_ids=None, screen_names=None):
         return self._lookup_users(list_to_csv(user_ids), list_to_csv(screen_names))
@@ -186,7 +195,7 @@ class API(object):
     direct_messages = bind_api(
         path = '/direct_messages.json',
         payload_type = 'direct_message', payload_list = True,
-        allowed_param = ['since_id', 'max_id', 'count', 'page'],
+        allowed_param = ['since_id', 'max_id', 'count'],
         require_auth = True
     )
 
@@ -242,13 +251,6 @@ class API(object):
         require_auth = True
     )
 
-    """ friendships/exists """
-    exists_friendship = bind_api(
-        path = '/friendships/exists.json',
-        payload_type = 'json',
-        allowed_param = ['user_a', 'user_b']
-    )
-
     """ friendships/show """
     show_friendship = bind_api(
         path = '/friendships/show.json',
@@ -257,10 +259,9 @@ class API(object):
                           'target_id', 'target_screen_name']
     )
 
-
     """ Perform bulk look up of friendships from user ID or screenname """
     def lookup_friendships(self, user_ids=None, screen_names=None):
-	    return self._lookup_friendships(list_to_csv(user_ids), list_to_csv(screen_names))
+        return self._lookup_friendships(list_to_csv(user_ids), list_to_csv(screen_names))
 
     _lookup_friendships = bind_api(
         path = '/friendships/lookup.json',
@@ -274,6 +275,13 @@ class API(object):
     friends_ids = bind_api(
         path = '/friends/ids.json',
         payload_type = 'ids',
+        allowed_param = ['id', 'user_id', 'screen_name', 'cursor']
+    )
+
+    """ friends/list """
+    friends = bind_api(
+        path = '/friends/list.json',
+        payload_type = 'user', payload_list = True,
         allowed_param = ['id', 'user_id', 'screen_name', 'cursor']
     )
 
@@ -295,6 +303,13 @@ class API(object):
     followers_ids = bind_api(
         path = '/followers/ids.json',
         payload_type = 'ids',
+        allowed_param = ['id', 'user_id', 'screen_name', 'cursor']
+    )
+
+    """ followers/list """
+    followers = bind_api(
+        path = '/followers/list.json',
+        payload_type = 'user', payload_list = True,
         allowed_param = ['id', 'user_id', 'screen_name', 'cursor']
     )
 
@@ -417,7 +432,7 @@ class API(object):
     blocks = bind_api(
         path = '/blocks/list.json',
         payload_type = 'user', payload_list = True,
-        allowed_param = ['page'],
+        allowed_param = ['cursor'],
         require_auth = True
     )
 
@@ -430,10 +445,10 @@ class API(object):
 
     """ report_spam """
     report_spam = bind_api(
-        path = '/report_spam.json',
+        path = '/users/report_spam.json',
         method = 'POST',
         payload_type = 'user',
-        allowed_param = ['id', 'user_id', 'screen_name'],
+        allowed_param = ['user_id', 'screen_name'],
         require_auth = True
     )
 
@@ -613,12 +628,10 @@ class API(object):
 
     """ search """
     search = bind_api(
-        search_api = True,
-        path = '/search.json',
-        payload_type = 'search_result', payload_list = True,
-        allowed_param = ['q', 'lang', 'locale', 'rpp', 'page', 'since_id', 'geocode', 'show_user', 'max_id', 'since', 'until', 'result_type']
+        path = '/search/tweets.json',
+        payload_type = 'search_results',
+        allowed_param = ['q', 'lang', 'locale', 'since_id', 'geocode', 'show_user', 'max_id', 'since', 'until', 'result_type']
     )
-    search.pagination_mode = 'page'
 
     """ trends/daily """
     trends_daily = bind_api(
